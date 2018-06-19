@@ -8,7 +8,7 @@ resource "kubernetes_pod" "backend-server" {
 
   spec {
     container {
-      image = "127.0.0.1:5000/backend-server:1"
+      image = "127.0.0.1:5000/backend-server:3"
       name  = "backend-server"
 
       port {
@@ -20,7 +20,7 @@ resource "kubernetes_pod" "backend-server" {
       }
       env {
         name = "APP_DB_HOST"
-        value = "backend-db"
+        value = "${kubernetes_service.backend-db.metadata.0.name}"
       }
       env {
         name = "APP_DB_PORT"
@@ -36,6 +36,42 @@ resource "kubernetes_pod" "backend-server" {
       }
 
     }
+  }
+}
+
+resource "kubernetes_pod" "backend-server-migration" {
+  metadata {
+    name = "backend-server-migration"
+    labels {
+      App = "backend"
+    }
+  }
+
+  spec {
+    container {
+      image = "127.0.0.1:5000/backend-server:3"
+      name  = "backend-server-migration"
+
+      env {
+        name = "APP_DB_HOST"
+        value = "${kubernetes_service.backend-db.metadata.0.name}"
+      }
+      env {
+        name = "APP_DB_PORT"
+        value = 6000
+      }
+      env {
+        name = "APP_DB_NAME"
+        value = "bespin"
+      }
+      env {
+        name = "APP_DB_USERNAME"
+        value = "postgres"
+      }
+      command=["./migrations/migrate"]
+
+    }
+    restart_policy = "OnFailure"
   }
 }
 
